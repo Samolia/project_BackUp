@@ -7,14 +7,14 @@ from termcolor import colored
 from logger import get_logger
 from modules.ya_uploader import YaUploader
 
+
 logger = get_logger('vk_req')
 
-# with open('token.txt') as vk_token:
+# with open('../my_tokens/token.txt') as vk_token:
 #     VK_TOKEN = vk_token.read().strip()
 #
-# with open('yd_token.txt') as yd_token:
+# with open('../my_tokens/yd_token.txt') as yd_token:
 #     YA_TOKEN = yd_token.read().strip()
-
 print(colored('Получив screen_name или id пользователя я сохраню фото его профиля на Яндекс диск', 'blue'))
 print(colored(f'Понадобятся ваши {colored("Yandex и VK", "cyan")} {colored("токены", "blue")}', "blue"))
 time.sleep(1)
@@ -59,13 +59,12 @@ class VKUser:
         if 'error' in response:
             logger.error(f'{response["error"]["error_msg"]}')
             print(colored('Такого пользователя не существует', 'red'))
-            print('Такого пользователя не существует')
             exit()
         else:
             response = response['response']
             self.user_id = response[0]['id']
             self.user_info = f'{response[0]["first_name"]} {response[0]["last_name"]}'
-            print(f'Найден пользователь: {self.user_info}')
+            print(f'{colored("Найден пользователь:", "green")} {colored(self.user_info, "cyan", attrs=["underline"])}')
 
     def get_info_about_albums(self):
         """
@@ -103,12 +102,12 @@ class VKUser:
         """
         all_albums = self.get_info_about_albums()
         counter = 1
-        print('Доступные альбомы и количество в них фотографий')
-        print('=' * 47)
+        print(colored('Доступные альбомы и количество в них фотографий', 'green'))
+        print(colored('=' * 47, 'magenta'))
         for album in all_albums:
-            print(f'{counter} {album["album_name"]:=<40}{album["size"]}')
+            print(f'{counter} {colored(album["album_name"], "green"):=<40}{colored(album["size"], "green")}')
             counter += 1
-        print('=' * 47)
+        print(colored('=' * 47, 'magenta'))
 
     def choice_album(self, user_choice_album):
         """
@@ -123,7 +122,7 @@ class VKUser:
                 logger.info(f'Выбран альбом - {album_name}')
                 return selected_album_id, album_name
             else:
-                logger.error(f'Выбран номер альбома вне диапазона')
+                logger.error('Выбран номер альбома вне диапазона')
 
     def get_photos(self, quantity_photo_to_upload=None, album_id=None):
         """
@@ -173,7 +172,7 @@ class VKUser:
         else:
             status_code = f'Код ответа - {response.status_code}\n'
             error_message = response.json()['message']
-            return f'Упс... Что-то пошло не так!\n{status_code} {error_message}\n'
+            print(colored(f'Упс... Что-то пошло не так!\n{status_code} {error_message}\n', "red"))
 
     def ya_upload(self, url_and_names_to_upload, album_name):
         """
@@ -184,7 +183,8 @@ class VKUser:
         uploader.create_dir(root_dir_name)
         dir_name = f'{root_dir_name}/{album_name}'
         uploader.create_dir(dir_name)
-        print(f'Выбран альбом - "{album_name}". Загружаю фотографии...')
+        print(colored(f'Выбран альбом - {colored(album_name, "green")}'
+                      f'{colored(" Загружаю фотографии...", "blue")}', "blue"))
         # прохожу циклом по списку возвращаемому методом get_photos() с url и именами фото
         for photo in tqdm.tqdm(url_and_names_to_upload, desc='Загрузка на яндекс диск', ncols=100, colour='#00ff00'):
             time.sleep(1)
@@ -192,21 +192,18 @@ class VKUser:
             image_url = photo[0]
             uploader.upload(file_path, image_url)
         logger.info('Файлы успешно добавлены на яндекс диск.')
-        print('Загрузка завершена. Проверьте яндекс диск.')
+        print(colored('Загрузка завершена. Проверьте яндекс диск.', 'green'))
 
 
 def main():
-    user_input = input('Введите screen_name или id: ')
-    print('=' * 47)
+    user_input = input(colored('Введите screen_name или id: ', 'blue'))
+    print(colored('=' * 47, 'magenta'))
     user1 = VKUser(VK_TOKEN, '5.130', user_input)
     user1.check_user_id(user_input)
     time.sleep(1)
     user1.print_info_about_albums()
     user_choice_album = input(colored('Выберите номер альбома: ', 'blue'))
     quantity_photo_to_upload = input(colored('Выберите количество фото для загрузки: ', 'blue'))
-    user_choice_album = input('Выберите номер альбома: ')
-    quantity_photo_to_upload = input('Выберите количество фото для загрузки: ')
-    user1.choice_album(user_choice_album)
     selected_album_id, album_name = user1.choice_album(user_choice_album)
     user1.get_photos(quantity_photo_to_upload, selected_album_id)
     user1.ya_upload(user1.get_photos(quantity_photo_to_upload, selected_album_id), album_name)
